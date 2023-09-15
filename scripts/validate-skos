@@ -3,6 +3,7 @@ set -euo pipefail
 
 scripts=$(realpath $(dirname -- "$0"))
 shape=$(realpath "$scripts/../skos.shacl.ttl")
+extractResults=$(realpath "$scripts/extractResults.rq")
 severity=all
 report=
 
@@ -65,17 +66,23 @@ else
     result=$(realpath "$result")
 fi
 
+#jq() { docker run -i --rm ghcr.io/jqlang/jq }
+
+# Run SHACL validation
 docker run --rm -v "$shape:/rdf/shape.ttl" -v "$file:/rdf/file.ttl" skohub/jena:4.6.1 shacl v -s /rdf/shape.ttl -d /rdf/file.ttl > "$result"
 
 if [[ "$report" -eq 1 ]]; then
   cat "$result"
 else
-  validationResult="$(docker run --rm -v $SEVERITY_FILE:/rdf/checkForViolation.rq --mount type=bind,source=$result,target=/rdf/result.ttl skohub/jena:4.6.1 arq --data /rdf/result.ttl --query /rdf/checkForViolation.rq)"
 
-  lines=$(echo "$validationResult" | wc -l )
+  jsonResult="$(docker run --rm -v $extractResults:/rdf/extractResults.rq --mount type=bind,source=$result,target=/rdf/result.ttl skohub/jena:4.6.1 arq --results=JSON --data /rdf/result.ttl --query /rdf/extractResults.rq)"
+
+  echo "$jsonResult" | jq -f scripts/jsonResults.jq 
+
+#  lines=$(echo "$validationResult" | wc -l )
 
   # Correct validation has 4 lines of output
-  [[ ${lines} -eq 4 ]] || die "$validationResult"
+#  [[ ${lines} -eq 4 ]] || die "$validationResult"
 
 fi
 

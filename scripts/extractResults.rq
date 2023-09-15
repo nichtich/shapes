@@ -1,0 +1,34 @@
+# Extracts SHACL validation results from validation report in tabular form
+# See <https://www.w3.org/TR/shacl/#results-validation-result>
+
+prefix sh: <http://www.w3.org/ns/shacl#>
+
+SELECT ?result ?message ?source ?node ?type ?severity ?path ?value
+WHERE {
+    ?result a sh:ValidationResult .
+
+    # exactely one RDF term: https://www.w3.org/TR/shacl/#results-focus-node
+    ?result sh:focusNode ?node .
+
+    # optional IRI or blank node: https://www.w3.org/TR/shacl/#results-source-shape
+    OPTIONAL { ?result sh:sourceShape ?source }
+
+    # exactely one IRI
+    ?result sh:sourceConstraintComponent ?type .
+
+    # optional messages: https://www.w3.org/TR/shacl/#results-message 
+    # FIXME: multiple messages of same result will duplicate results
+    OPTIONAL { ?result sh:resultMessage ?message }
+
+    # optional SHACL property path: https://www.w3.org/TR/shacl/#results-path
+    # TODO: more complex path is given as blank node, this should be made string
+    OPTIONAL { ?result sh:resultPath ?path }        
+
+    # at most one RDF term: <https://www.w3.org/TR/shacl/#results-value
+    OPTIONAL { ?result sh:value ?value }            
+
+    # exactely one IRI: https://www.w3.org/TR/shacl/#results-severity
+    ?result sh:resultSeverity ?severity .
+
+    # not included: sh:detail: https://www.w3.org/TR/shacl/#results-detail
+}
